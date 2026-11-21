@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.services.base import BaseModuleService
+from app.services.table_row_stat import TableRowStatService
 from app.store import store
 
 
@@ -52,6 +53,15 @@ class TableCatalogService(BaseModuleService):
             "abnormal": False,
         }
         rows.append(entry)
+
+        # 注册即聚合一条估算行数统计，后续重算标签直接取数，无需重复扫描目录
+        registered_at = entry["最后更新"]
+        TableRowStatService().aggregate_directory_scan(
+            [{"表名称": table_name, "数据行数": row_count}],
+            batch_id=f"register-{new_id:04d}",
+            stat_time=registered_at,
+            source="估算",
+        )
 
         validation_issues = self._validate_columns(columns)
 
